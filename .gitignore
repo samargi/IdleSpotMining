@@ -1,0 +1,22 @@
+@"
+# ignore env files
+.env
+.env.local
+.env.*.local
+
+# logs & transcripts
+*.log
+*.transcript.txt
+
+# windows roinaa
+Thumbs.db
+Desktop.ini
+
+# editor temp
+*.tmp
+*.bak
+
+# (jos pidät väliaikaisia .cmd/.xml tiedostoja tässä)
+mk_*.cmd
+*.xml
+"@ | Out-File -Encoding UTF8 .gitignore
