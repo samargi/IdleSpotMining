@@ -6,16 +6,49 @@
 # - Debug logging for worker.list / algorithm.list responses when parsing is unclear.
 # =========================
 
+# --- LOAD .ENV (optional) ---
+$dotenvPath = Join-Path $PSScriptRoot ".env"
+if (Test-Path $dotenvPath) {
+  Get-Content $dotenvPath | ForEach-Object {
+    if ($_ -match '^\s*#') { return }      # comment lines
+    if ($_ -match '^\s*$') { return }      # blank lines
+    $idx = $_.IndexOf('=')
+    if ($idx -gt 0) {
+      $k = $_.Substring(0, $idx).Trim()
+      $v = $_.Substring($idx + 1).Trim()
+      if ($k) { [Environment]::SetEnvironmentVariable($k, $v, 'Process') }
+    }
+  }
+}
+
 $ErrorActionPreference = 'Stop'
 
 # --- SETTINGS ---
-$ThresholdCents = 6.0                      # cutoff in c/kWh
-$JustNowUrl     = "https://api.spot-hinta.fi/JustNow"
+# Allow overriding via .env: THRESHOLD_CENTS and JUSTNOW_URL
+# THRESHOLD_CENTS must be numeric (dot as decimal separator).
+$ThresholdCents = 6.0  # default cutoff in c/kWh
+if ($env:THRESHOLD_CENTS) {
+  $parsed = 0.0
+  if ([double]::TryParse($env:THRESHOLD_CENTS, [System.Globalization.NumberStyles]::Float, [System.Globalization.CultureInfo]::InvariantCulture, [ref]$parsed)) {
+    $ThresholdCents = $parsed
+  } else {
+    Write-Warning "Invalid THRESHOLD_CENTS in .env: '$($env:THRESHOLD_CENTS)'. Using default $ThresholdCents."
+  }
+}
+
+$JustNowUrl = if ($env:JUSTNOW_URL) { $env:JUSTNOW_URL } else { "https://api.spot-hinta.fi/JustNow" }
 
 # --- LOGGING ---
-$LogDir     = "C:\Scripts"
-$LogFile    = Join-Path $LogDir "miner-switch.log"
-$Transcript = Join-Path $LogDir "miner-switch.transcript.txt"
+# Prefer LOGFILE from .env; otherwise use default. Derive log directory from path.
+$LogFile = if ($env:LOGFILE) { $env:LOGFILE } else { ".\miner-switch.log" }
+$LogDir  = Split-Path -Path $LogFile -Parent
+if (-not $LogDir) { $LogDir = "." }
+
+# Allow TRANSCRIPT to be overridden via .env; otherwise default in the same folder
+$Transcript = if ($env:TRANSCRIPT) { $env:TRANSCRIPT } else { Join-Path $LogDir "miner-switch.transcript.txt" }
+
+# Ensure the log directory exists
+New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 
 # --- LOG ROTATION ---
 $MaxLogBytes = 1MB

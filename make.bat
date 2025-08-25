@@ -1,13 +1,22 @@
 @echo off
 setlocal
 
+REM Load .env (if exists)
+if exist ".env" (
+  for /f "usebackq eol=# tokens=1,* delims==" %%K in (".env") do (
+    if not "%%~L"=="" set "%%K=%%L"
+  )
+)
+
 REM === CONFIG ===
-set "TASKNAME=IdleSpotMining"
-set "SCRIPT=C:\Scripts\IdleSpotMining.ps1"
-set "POWERSHELL=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
-set "LOGFILE=C:\Scripts\miner-switch.log"
+REM Käytä .env-arvoja, muuten ota oletus
+if not defined TASKNAME  set "TASKNAME=IdleSpotMining"
+if not defined SCRIPT    set "SCRIPT=.\IdleSpotMining\IdleSpotMining.ps1"
+if not defined POWERSHELL set "POWERSHELL=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+if not defined LOGFILE   set "LOGFILE=.\IdleSpotMining\miner-switch.log"
 REM käytä kirjautunutta käyttäjää oletuksena
-set "RUNUSER=%COMPUTERNAME%\%USERNAME%"
+if not defined RUNUSER   set "RUNUSER=%COMPUTERNAME%\%USERNAME%"
+if not defined NHQM_DIR  set "NHQM_DIR=C:\NiceHash\NiceHash QuickMiner"
 
 if "%~1"=="" goto USAGE
 set "CMD=%~1"
